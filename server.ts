@@ -13,7 +13,6 @@ const { TextToSpeechServiceWEB } = require("./modules/tts-service-web");
 const { ChatGPTStreamService } = require("./modules/chatgpt-service");
 //const { TextToSpeechServicePlayHT } = require("./modules/tts-service-playht");
 const { SettingsModule } = require('./modules/settingsModule');
-const { ChatGPTStreamServiceNEW } = require('./modules/chatgpt-service-assistants')
 
 const httpsOptions = {
     cert: fs.readFileSync('/etc/letsencrypt/live/voice.roboticated.com/fullchain.pem'),
