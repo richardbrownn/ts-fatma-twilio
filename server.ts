@@ -330,6 +330,7 @@ app.ws("/web", (ws, req) => {
     console.log("2");
     // Сохраняем сессию в хранилище
     sessions.set(sessionId, session);
+    session.messageHistory.push({ role: "system", content: context });
     console.log("4");
 
     session.ws.on("message", function message(data: string) {
@@ -360,7 +361,7 @@ app.ws("/web", (ws, req) => {
         } else if (msg.event === "mark" && !session.isWelcomeAudioPlaying && msg.mark.name != 'welcome_audio_end') {
             session.markCount++;
             if (!session.chunkCheckTimer) {
-                if (chunkCount === markCount) {
+                if (session.chunkCount === session.markCount) {
                     session.isRequestProcessing = false;
                     session.isAudioStreaming = false;
                     console.log("All chunks processed.");
@@ -421,7 +422,7 @@ app.ws("/web", (ws, req) => {
             session.isRequestProcessing = true;
             session.chunkCount = 0;
             session.markCount = 0;
-            session.chatGPTService.streamResponse(session.messageHistory.trim());
+            session.chatGPTService.streamResponse(session.messageHistory);
     
             session.isChatGPTStreaming = true;
         } catch (error) {
@@ -438,7 +439,7 @@ app.ws("/web", (ws, req) => {
 
     const closeConnection = () => {
         if (Date.now() - session.lastTranscriptionTime >= 30000 && !session.isRequestProcessing) {
-            ws.close();
+            session.ws.close();
         }
     };
 
@@ -492,7 +493,7 @@ app.ws("/web", (ws, req) => {
 
     session.ttsService.on("speech", (audio, label) => {
         if (session.isTTSGenerting) {
-            chunkCount++;
+            session.chunkCount++;
             clearTimeout(session.chunkCheckTimer);
             session.chunkCheckTimer = setTimeout(() => {
                 session.chunkCheckTimer = 0;
@@ -551,6 +552,15 @@ app.ws("/web", (ws, req) => {
         }
     };    
 });
+function generateUniqueSessionId() {
+    // Получаем временную метку
+    const timestamp = Date.now();
+    // Генерируем случайное число и преобразуем его в строку в 16-ричной системе счисления
+    const randomPart = Math.random().toString(16).substring(2, 10);
+    // Комбинируем временную метку и случайную часть для получения идентификатора
+    const sessionId = `${timestamp}-${randomPart}`;
+    return sessionId;
+}
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`HTTPS server running on port ${PORT}`);
