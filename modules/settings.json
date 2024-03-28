@@ -1,0 +1,18 @@
+{
+    "delay": "1000",
+    "deepgramModel": "nova-2",
+    "stability": "0.5",
+    "similarityBoost": "1.0",
+    "openaiApiKey": "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",
+    "xiModelId": "eleven_turbo_v2",
+    "voiceId": "21m00Tcm4TlvDq8ikWAM",
+    "xiApiKey": "1d3395d9458732cc3f93d429f7119b8f",
+    "server": "a063-34-23-70-208.ngrok-free.app",
+    "deepgramApiKey": "828fc82de64d30118831c1ed36b337e96fd95351",
+    "deepgramUtterance": "1000",
+    "elevenLabsStability": "0.5",
+    "elevenLabsSimilarity": "1.0",
+    "openaiModel": "gpt-3.5-turbo-1106",
+    "openaiContext": "You are a universal assistant"
+  }
+  
