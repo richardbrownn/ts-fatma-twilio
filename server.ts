@@ -309,7 +309,7 @@ app.ws("/web", (ws, req) => {
         thread: '',
         transcriptionService: new TranscriptionServiceWEB(),
         ttsService: new TextToSpeechServiceWEB({}),
-        chatGPTService:  new ChatGPTStreamServiceNEW(),
+        chatGPTService:  new ChatGPTStreamService(),
         lastTranscriptionTime: Date.now(),
         accumulatedTranscription: "",
         messageHistory: [],
@@ -329,11 +329,6 @@ app.ws("/web", (ws, req) => {
         chunkCount: 0
     };
     console.log("2");
-    const initFunc = async () => {
-        await session.chatGPTService.init();
-    }
-    initFunc();
-
     // Сохраняем сессию в хранилище
     sessions.set(sessionId, session);
     console.log("4");
@@ -427,7 +422,7 @@ app.ws("/web", (ws, req) => {
             session.isRequestProcessing = true;
             session.chunkCount = 0;
             session.markCount = 0;
-            session.chatGPTService.streamResponse(session.accumulatedTranscription.trim());
+            session.chatGPTService.streamResponse(session.messageHistory.trim());
     
             session.isChatGPTStreaming = true;
         } catch (error) {
@@ -566,3 +561,4 @@ const settingsApp = express();
 const settingsModule = new SettingsModule(settingsApp);
 settingsModule.start(5500);
 console.log(`Server running on port ${PORT}`);
+
