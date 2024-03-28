@@ -1,9 +1,10 @@
+import process from "process";
+
 require("dotenv").config();
 const express = require("express");
 const https = require('https');
 const ExpressWs = require("express-ws");
 const fs = require('fs');
-const WS = require('ws'); // Измените имя переменной здесь
 const cors = require('cors');
 
 const { TextToSpeechService } = require("./modules/tts-service");
@@ -11,7 +12,8 @@ const { TranscriptionService } = require("./modules/transcription-service");
 const { TranscriptionServiceWEB } = require("./modules/transcription-service-web");
 const { TextToSpeechServiceWEB } = require("./modules/tts-service-web");
 const { ChatGPTStreamService } = require("./modules/chatgpt-service");
-//const { TextToSpeechServicePlayHT } = require("./modules/tts-service-playht");
+const { TextToSpeechServicePlayHTWEB } = require("./modules/tts-service-playht-web");
+const { TextToSpeechServicePlayHT } = require("./modules/tts-service-playht");
 const { SettingsModule } = require('./modules/settingsModule');
 
 const httpsOptions = {
@@ -57,9 +59,13 @@ app.post("/incoming", (req, res) => {
 app.ws("/connection", (ws, req) => {
     ws.on("error", console.error);
     let streamSid: string;
-
+    let ttsService: any;
+    if (process.env.IS_PLAY_SERVICE == "playht"){
+        ttsService = new TextToSpeechServicePlayHT({});
+    } else {
+        ttsService = new TextToSpeechService({}); 
+    }
     const transcriptionService = new TranscriptionService();
-    const ttsService = new TextToSpeechService({});
     const chatGPTService = new ChatGPTStreamService();
     let lastTranscriptionTime: number = Date.now();
     let accumulatedTranscription: string = "";
@@ -301,13 +307,19 @@ app.ws("/web", (ws, req) => {
     let streamSid: string;
     console.log("1");
     const sessionId = generateUniqueSessionId(); // Генерируем уникальный ID для новой сессии
+    let PlayService: any;
+    if (process.env.IS_PLAY_SERVICE == "playht"){
+        PlayService = new TextToSpeechServicePlayHTWEB({});
+    } else {
+        PlayService = new TextToSpeechServiceWEB({}); 
+    }
     console.log("1.1");
     const session = {
         ws: ws,
         streamSid: '',
         thread: '',
         transcriptionService: new TranscriptionServiceWEB(),
-        ttsService: new TextToSpeechServiceWEB({}),
+        ttsService: PlayService,
         chatGPTService:  new ChatGPTStreamService(),
         lastTranscriptionTime: Date.now(),
         accumulatedTranscription: "",
@@ -445,37 +457,17 @@ app.ws("/web", (ws, req) => {
 
     session.transcriptionService.on("transcription", (text, isFinal, isEnd) => {
         console.log(`Received transcription: ${text}`);
-        if (session.accumulatedResponse.length > 0){
-            session.messageHistory.push({ role: "system", content: session.accumulatedResponse});
-            console.log(session.messageHistory);
-            session.accumulatedResponse = "";
+        session.lastTranscriptionTime = Date.now();
+        if (session.isRequestProcessing || session.isAudioStreaming) {
+            abortStreamingAndAudio()
         }
-        if (session.isRequestProcessing && session.isAudioStreaming && !isFinal) {
-            session.awaitingFinalTranscription = true;
-            abortStreamingAndAudio();
-            return;
-        }
-        if (session.isRequestProcessing && session.isAudioStreaming && isFinal) {
-            abortStreamingAndAudio();
-            return;
-        }
-        if (session.isRequestProcessing && !session.isAudioStreaming) {
-            abortStreamingAndAudio();
-        }
-        if (session.awaitingFinalTranscription && !isFinal) {
-            return;
-        }
-        if (isFinal && session.awaitingFinalTranscription) {
-            session.awaitingFinalTranscription = false;
-            return;
-        }
-        if (isFinal) {
+        if (isFinal){
             session.accumulatedTranscription += " " + text;
         }
-        if (isEnd && session.accumulatedTranscription.length > 0) {
+        if (isEnd){
+            session.messageHistory.push({ role: "system", content: session.accumulatedResponse});
             sendToGPT();
         }
-        session.lastTranscriptionTime = Date.now();
     });
 
     session.transcriptionService.on("error", (error) => {
