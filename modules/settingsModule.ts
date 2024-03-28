@@ -14,17 +14,21 @@ interface User {
 }
 
 interface Settings {
-    delay: string;
-    deepgramModel: string;
-    stability: string;
-    similarityBoost: string;
-    openaiApiKey: string;
-    xiModelId: string;
-    voiceId: string
-    xiApiKey: string;
-    server: string;
-    deepgramApiKey: string;
-    openaiContext?: string;
+    DEEPGRAM_DELAY: string;
+    DEEPGRAM_MODEL: string;
+    DEEPGRAM_APIKEY: string;
+    ELEVENLABS_STABILITY: string;
+    ELEVENLABS_SIMILARITYBOOST: string;
+    PLAYHT_APIKEY: string;
+    PLAYHT_USERID: string;
+    PLAYHT_VOICE: string;
+    OPENAI_MODEL: string;
+    OPENAI_APIKEY: string;
+    ELEVENLABS_MODEL: string;
+    ELEVENLABS_VOICEID: string
+    ELEVENLABS_APIKEY: string;
+    SERVER_ADDRESS: string
+    OPENAI_CONTEXT?: string;
 }
 
 export class SettingsModule {
@@ -48,6 +52,7 @@ export class SettingsModule {
         this.app.post('/settings', this.postSettings);
         this.app.post('/login', this.login);
         this.app.post('/update-welcome-message', this.updateWelcomeMessage);
+        this.app.post('/update-welcome-message-8000', this.updateWelcomeMessage8000);
     }
 
     private loadUsers = (): User[] => {
@@ -86,20 +91,21 @@ export class SettingsModule {
         try {
             const envFilePath = path.join(__dirname, '../.env');
             const envContent = `
-DEEPGRAM_API_KEY="${settings.deepgramApiKey}"
-XI_API_KEY="${settings.xiApiKey}"
-XI_MODEL_ID="${settings.xiModelId}"
-VOICE_ID="${settings.voiceId}"
-SERVER="${settings.server}"
-OPENAI_API_KEY="${settings.openaiApiKey}"
-DEEPGRAM_MODEL="${settings.deepgramModel}"
-DEEPGRAM_UTTERANCE=${settings.delay}
-ELEVENLABS_STABILITY=${settings.stability}
-ELEVENLABS_SIMILARITY=${settings.similarityBoost}
-OPENAI_MODEL="gpt-3.5-turbo-1106"
-OPENAI_CONTEXT="${settings.openaiContext || 'You are a universal assistant'}"
-PLAYHT_API_KEY="e3652dd0cda640bba2cf56d6b8507e12"
-PLAYHT_USER_ID="VNV7WBf53wWVmGUhpv9pijv9H9k1"`;
+DEEPGRAM_API_KEY="${settings.DEEPGRAM_APIKEY}"
+XI_API_KEY="${settings.ELEVENLABS_APIKEY}"
+XI_MODEL_ID="${settings.ELEVENLABS_MODEL}"
+VOICE_ID="${settings.ELEVENLABS_VOICEID}"
+SERVER="${settings.SERVER_ADDRESS}"
+OPENAI_API_KEY="${settings.OPENAI_APIKEY}"
+DEEPGRAM_MODEL="${settings.DEEPGRAM_MODEL}"
+DEEPGRAM_UTTERANCE="${settings.DEEPGRAM_DELAY}"
+ELEVENLABS_STABILITY="${settings.ELEVENLABS_STABILITY}"
+ELEVENLABS_SIMILARITY="${settings.ELEVENLABS_SIMILARITYBOOST}"
+OPENAI_MODEL="${settings.OPENAI_MODEL}"
+OPENAI_CONTEXT="${settings.OPENAI_CONTEXT || 'You are a universal assistant'}"
+PLAYHT_API_KEY="${settings.PLAYHT_APIKEY}"
+PLAYHT_VOICE="${settings.PLAYHT_VOICE}"
+PLAYHT_USER_ID="${settings.PLAYHT_USERID}"`;
 
 
             fs.writeFileSync(envFilePath, envContent);
@@ -116,16 +122,40 @@ PLAYHT_USER_ID="VNV7WBf53wWVmGUhpv9pijv9H9k1"`;
 
     private postSettings = (req: express.Request, res: express.Response) => {
         const { username, password, settings } = req.body;
-
+    
+        // Authentication check
         const user = this.loadUsers().find(u => u.username === username && u.password === password);
-
         if (!user) {
             return res.status(401).send({ message: 'Unauthorized access' });
         }
-
-        this.saveSettings(settings as Settings);
+    
+        // Define the keys that can be updated
+        const allowedKeys = new Set([
+            "DEEPGRAM_DELAY", "DEEPGRAM_MODEL", "DEEPGRAM_APIKEY",
+            "OPENAI_CONTEXT", "OPENAI_MODEL", "OPENAI_APIKEY",
+            "SERVER_ADDRESS", "ELEVENLABS_STABILITY", "ELEVENLABS_SIMILARITYBOOST",
+            "ELEVENLABS_MODEL", "ELEVENLABS_VOICEID", "ELEVENLABS_APIKEY",
+            "PLAYHT_APIKEY", "PLAYHT_USERID", "PLAYHT_VOICE",
+        ]);
+    
+        // Validate and sanitize the incoming settings
+        const validatedSettings = Object.keys(settings).reduce((acc, key) => {
+            if (allowedKeys.has(key)) {
+                // Perform necessary sanitization for each setting based on its expected data type/format
+                // For example, if a setting is expected to be a string, sanitize to remove any malicious code
+                acc[key] = settings[key]; // Replace this with actual sanitization logic
+            }
+            return acc;
+        }, {});
+    
+        // Update the settings
+        const currentSettings = this.loadSettings();
+        const newSettings = { ...currentSettings, ...validatedSettings };
+        this.saveSettings(newSettings);
+    
         res.send({ message: 'Settings updated successfully' });
     };
+    
 
     private login = (req: express.Request, res: express.Response) => {
         const { username, password } = req.body;
@@ -155,7 +185,6 @@ PLAYHT_USER_ID="VNV7WBf53wWVmGUhpv9pijv9H9k1"`;
         if (!text) {
             return res.status(400).send({ message: 'Text is required' });
         }
-
         const ttsService16000 = new TextToSpeechServiceWEB({});
         let audioData: string[] = [];
 
@@ -182,6 +211,47 @@ PLAYHT_USER_ID="VNV7WBf53wWVmGUhpv9pijv9H9k1"`;
             res.status(500).send({ message: 'Error processing text-to-speech' });
         }
 
+        const settings = this.loadSettings();
+        this.saveSettingsToEnv(settings);
+
+    };
+    
+    private updateWelcomeMessage8000 = async (req: express.Request, res: express.Response) => {
+        const { username, password, text } = req.body;
+        const user = this.loadUsers().find(u => u.username === username && u.password === password);
+
+        if (!user) {
+            return res.status(401).send({ message: 'Unauthorized access' });
+        }
+
+        if (!text) {
+            return res.status(400).send({ message: 'Text is required' });
+        }
+        const ttsService8000 = new TextToSpeechService({});
+        let audioData: string[] = [];
+
+        ttsService8000.generate(text);
+        try {
+            await new Promise<void>((resolve, reject) => {
+                ttsService8000.on("speech", (audioBase64: string, label: string, isFinal: boolean) => {
+                    audioData.push(audioBase64);
+                });
+
+                ttsService8000.on("finalChunk", () => {
+                    resolve();
+                });
+
+                setTimeout(() => reject(new Error("Timeout waiting for final chunk")), 10000);
+            });
+
+            const audioBuffer = Buffer.concat(audioData.map(part => Buffer.from(part, 'base64')));
+            const filePath = path.join(__dirname, '../welcome8000.wav');
+            fs.writeFileSync(filePath, audioBuffer);
+            res.send({ message: 'Welcome message updated successfully' });
+        } catch (error) {
+            console.error(`Error: ${error}`);
+            res.status(500).send({ message: 'Error processing text-to-speech' });
+        }
 
         const settings = this.loadSettings();
         this.saveSettingsToEnv(settings);
