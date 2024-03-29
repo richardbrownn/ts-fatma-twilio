@@ -1,0 +1,23 @@
+{
+    "DEEPGRAM_DELAY": "1000",
+    "DEEPGRAM_MODEL": "nova-2",
+    "DEEPGRAM_APIKEY": "828fc82de64d30118831c1ed36b337e96fd95351",
+
+    "OPENAI_CONTEXT": "You are a universal assistant",
+    "OPENAI_MODEL": "gpt-3.5-turbo-1106",
+    "OPENAI_APIKEY": "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",
+    "SERVER_ADDRESS": "voice.roboticated.com:3001",
+
+    "ELEVENLABS_STABILITY": "0.5",
+    "ELEVENLABS_SIMILARITYBOOST": "1.0",
+    "ELEVENLABS_MODEL": "eleven_monolingual_v1",
+    "ELEVENLABS_VOICEID": "qDBkGoxvIUKOB8SggEAn",
+    "ELEVENLABS_APIKEY": "1100e97aae50af7d3477efff96a00746",
+
+    "IS_PLAY_SERVICE": "elevenlabs",
+
+    "PLAYHT_APIKEY": "e3652dd0cda640bba2cf56d6b8507e12",
+    "PLAYHT_USERID": "VNV7WBf53wWVmGUhpv9pijv9H9k1",
+    "PLAYHT_VOICE": "s3://voice-cloning-zero-shot/dc23bb38-f568-4323-b6fb-7d64f685b97a/joseph/manifest.json"
+  }
+  
